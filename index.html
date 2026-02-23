@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>London Favourites Map</title>
+
+<link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+
+<style>
+  :root{
+    --border:#e5e5e5;
+    --muted:#666;
+    --shadow:0 6px 18px rgba(0,0,0,0.08);
+    --radius:16px;
+  }
+  body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial; background:#fff; }
+  .wrap{
+    display:grid;
+    grid-template-columns:340px 1fr;
+    height:800px;
+    border-radius:var(--radius);
+    overflow:hidden;
+    border:1px solid var(--border);
+  }
+  .sidebar{
+    padding:16px;
+    overflow:auto;
+    border-right:1px solid var(--border);
+    background:#fff;
+  }
+  .title{ margin:0 0 8px 0; font-size:18px; font-weight:650; }
+  .sub{ margin:0 0 12px 0; font-size:13px; color:var(--muted); line-height:1.35; }
+  .card{
+    border:1px solid #eee;
+    border-radius:12px;
+    padding:10px;
+    margin-bottom:10px;
+    cursor:pointer;
+    background:#fff;
+  }
+  .card:hover{ box-shadow:var(--shadow); }
+  .cardName{ font-weight:650; }
+  .cardArea{ color:var(--muted); font-size:13px; margin-top:2px; }
+  .cardNote{ font-size:13px; margin-top:6px; }
+  #map{ position:relative; }
+  #mapInner{ position:absolute; inset:0; }
+
+  @media(max-width:900px){
+    .wrap{ grid-template-columns:1fr; grid-template-rows:320px 1fr; height:85vh; }
+    .sidebar{ border-right:none; border-top:1px solid var(--border); }
+  }
+
+  .mapboxgl-popup-content{
+    border-radius:12px;
+    border:1px solid rgba(0,0,0,0.12);
+    box-shadow:0 12px 30px rgba(0,0,0,0.12);
+    font-family:inherit;
+    padding:10px 12px;
+  }
+</style>
+</head>
+
+<body>
+  <div class="wrap">
+    <aside class="sidebar">
+      <h2 class="title">London Favourites</h2>
+      <p class="sub">Click a place to zoom the map. Tap a marker for details.</p>
+      <div id="list"></div>
+    </aside>
+
+    <section id="map">
+      <div id="mapInner"></div>
+    </section>
+  </div>
+
+<script>
+  mapboxgl.accessToken = "pk.eyJ1IjoiYXBwbGVieTAwMCIsImEiOiJjbWx6anRtYmcwODh1M2Nwb2I1bngzb3Y3In0.UKx73pCX_RMPEaqeyFrQnw";
+
+  const places = [
+    { name:"Caravan (Fitzrovia)", area:"Fitzrovia", note:"", lngLat:[-0.1367,51.5186]},
+    { name:"Caravan (King's Cross)", area:"King's Cross", note:"", lngLat:[-0.1246,51.5353]},
+    { name:"Caravan (London Bridge)", area:"London Bridge", note:"", lngLat:[-0.0865,51.5056]},
+    { name:"Roast Borough Market", area:"London Bridge", note:"", lngLat:[-0.0903,51.5055]},
+    { name:"26 Grains", area:"Covent Garden", note:"Favourite breakfast (porridge!).", lngLat:[-0.1245,51.5127]},
+    { name:"Ottolenghi (Marylebone)", area:"Marylebone", note:"Great for sweets.", lngLat:[-0.1516,51.5202]},
+    { name:"St. John", area:"Clerkenwell", note:"", lngLat:[-0.1037,51.5208]},
+    { name:"The Wolseley", area:"Piccadilly", note:"Great breakfast or tea (and design).", lngLat:[-0.1393,51.5073]},
+    { name:"Riding House Café", area:"Fitzrovia", note:"", lngLat:[-0.1377,51.5185]},
+    { name:"Tayyabs", area:"Whitechapel", note:"Famous Pakistani grill near Brick Lane/Shoreditch.", lngLat:[-0.0685,51.5146]},
+    { name:"Beigel Bake", area:"Brick Lane", note:"Famous 24hrs.", lngLat:[-0.0716,51.5244]},
+    { name:"Duck & Waffle", area:"City", note:"24hr top floor late-night food.", lngLat:[-0.0802,51.5153]},
+    { name:"The Shed", area:"Notting Hill", note:"", lngLat:[-0.2041,51.5108]},
+    { name:"Dishoom (King's Cross)", area:"King's Cross", note:"", lngLat:[-0.1236,51.5352]},
+    { name:"L’Entrecôte", area:"Marylebone", note:"", lngLat:[-0.1521,51.5183]},
+    { name:"Honey & Co", area:"Fitzrovia", note:"", lngLat:[-0.1365,51.5182]},
+    { name:"Yalla Yalla", area:"Soho", note:"", lngLat:[-0.1330,51.5132]},
+    { name:"Fairuz", area:"Marylebone High Street", note:"", lngLat:[-0.1506,51.5198]},
+    { name:"Polpo", area:"Soho", note:"", lngLat:[-0.1319,51.5137]},
+    { name:"Social Eating House", area:"Soho", note:"", lngLat:[-0.1362,51.5130]},
+    { name:"Brindisa (Soho)", area:"Soho", note:"", lngLat:[-0.1314,51.5124]},
+    { name:"The Ivy Café", area:"Marylebone", note:"Mid-morning breakfast (~10am).", lngLat:[-0.1504,51.5194]},
+    { name:"Rochelle Canteen", area:"Shoreditch", note:"", lngLat:[-0.0739,51.5237]},
+    { name:"Crispin", area:"Spitalfields", note:"", lngLat:[-0.0756,51.5198]}
+  ];
+
+  const map = new mapboxgl.Map({
+    container: "mapInner",
+    style: "mapbox://styles/mapbox/streets-v12",
+    center: [-0.1276, 51.5072],
+    zoom: 11
+  });
+
+  map.addControl(new mapboxgl.NavigationControl(), "bottom-right");
+
+  const listEl = document.getElementById("list");
+  const bounds = new mapboxgl.LngLatBounds();
+
+  places.forEach((p) => {
+    bounds.extend(p.lngLat);
+
+    const popup = new mapboxgl.Popup({ offset: 15 })
+      .setHTML(`<strong>${p.name}</strong><br>${p.area}${p.note ? `<br>${p.note}` : ""}`);
+
+    new mapboxgl.Marker()
+      .setLngLat(p.lngLat)
+      .setPopup(popup)
+      .addTo(map);
+
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `
+      <div class="cardName">${p.name}</div>
+      <div class="cardArea">${p.area}</div>
+      ${p.note ? `<div class="cardNote">${p.note}</div>` : ""}
+    `;
+    card.onclick = () => {
+      map.flyTo({ center: p.lngLat, zoom: 14 });
+      popup.addTo(map);
+    };
+    listEl.appendChild(card);
+  });
+
+  map.once("load", () => map.fitBounds(bounds, { padding: 60 }));
+</script>
+</body>
+</html>
