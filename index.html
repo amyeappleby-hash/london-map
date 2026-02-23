@@ -14,13 +14,18 @@
     --muted:#666;
     --shadow:0 6px 18px rgba(0,0,0,0.08);
     --radius:16px;
+
+    --c-restaurant:#1f9d55; /* green */
+    --c-coffee:#2563eb;     /* blue */
+    --c-pub:#dc2626;        /* red */
   }
+
   body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial; background:#fff; }
   .wrap{
     display:grid;
     grid-template-columns:340px 1fr;
     height:650px;
-     border-radius:16px;
+    border-radius:16px;
     overflow:hidden;
     border:1px solid var(--border);
   }
@@ -32,6 +37,25 @@
   }
   .title{ margin:0 0 8px 0; font-size:18px; font-weight:650; }
   .sub{ margin:0 0 12px 0; font-size:13px; color:var(--muted); line-height:1.35; }
+
+  .legend{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    flex-wrap:wrap;
+    margin:0 0 12px 0;
+    font-size:12px;
+    color:var(--muted);
+  }
+  .legendItem{ display:flex; align-items:center; gap:6px; }
+  .dot{
+    width:10px; height:10px; border-radius:999px;
+    border:1px solid rgba(0,0,0,0.15);
+  }
+  .dot.restaurant{ background:var(--c-restaurant); }
+  .dot.coffee{ background:var(--c-coffee); }
+  .dot.pub{ background:var(--c-pub); }
+
   .card{
     border:1px solid #eee;
     border-radius:12px;
@@ -41,9 +65,11 @@
     background:#fff;
   }
   .card:hover{ box-shadow:var(--shadow); }
-  .cardName{ font-weight:650; }
+  .cardTop{ display:flex; align-items:flex-start; gap:10px; }
+  .cardName{ font-weight:650; line-height:1.2; }
   .cardArea{ color:var(--muted); font-size:13px; margin-top:2px; }
   .cardNote{ font-size:13px; margin-top:6px; }
+
   #map{ position:relative; }
   #mapInner{ position:absolute; inset:0; }
 
@@ -59,6 +85,18 @@
     font-family:inherit;
     padding:10px 12px;
   }
+
+  /* Custom Mapbox markers */
+  .marker{
+    width:14px;
+    height:14px;
+    border-radius:999px;
+    border:2px solid #fff;
+    box-shadow:0 2px 10px rgba(0,0,0,0.25);
+  }
+  .marker.restaurant{ background:var(--c-restaurant); }
+  .marker.coffee{ background:var(--c-coffee); }
+  .marker.pub{ background:var(--c-pub); }
 </style>
 </head>
 
@@ -67,6 +105,13 @@
     <aside class="sidebar">
       <h2 class="title">London Favourites</h2>
       <p class="sub">Click a place to zoom the map. Tap a marker for details.</p>
+
+      <div class="legend">
+        <div class="legendItem"><span class="dot restaurant"></span>Restaurants</div>
+        <div class="legendItem"><span class="dot coffee"></span>Coffee</div>
+        <div class="legendItem"><span class="dot pub"></span>Pubs</div>
+      </div>
+
       <div id="list"></div>
     </aside>
 
@@ -79,31 +124,60 @@
   mapboxgl.accessToken = "pk.eyJ1IjoiYXBwbGVieTAwMCIsImEiOiJjbWx6anRtYmcwODh1M2Nwb2I1bngzb3Y3In0.UKx73pCX_RMPEaqeyFrQnw";
 
   const places = [
-    { name:"Caravan (Fitzrovia)", area:"Fitzrovia", note:"", lngLat:[-0.1367,51.5186]},
-    { name:"Caravan (King's Cross)", area:"King's Cross", note:"", lngLat:[-0.1246,51.5353]},
-    { name:"Caravan (London Bridge)", area:"London Bridge", note:"", lngLat:[-0.0865,51.5056]},
-    { name:"Roast Borough Market", area:"London Bridge", note:"", lngLat:[-0.0903,51.5055]},
-    { name:"26 Grains", area:"Covent Garden", note:"Favourite breakfast (porridge!).", lngLat:[-0.1245,51.5127]},
-    { name:"Ottolenghi (Marylebone)", area:"Marylebone", note:"Great for sweets.", lngLat:[-0.1516,51.5202]},
-    { name:"St. John", area:"Clerkenwell", note:"", lngLat:[-0.1037,51.5208]},
-    { name:"The Wolseley", area:"Piccadilly", note:"Great breakfast or tea (and design).", lngLat:[-0.1393,51.5073]},
-    { name:"Riding House Café", area:"Fitzrovia", note:"", lngLat:[-0.1377,51.5185]},
-    { name:"Tayyabs", area:"Whitechapel", note:"Famous Pakistani grill near Brick Lane/Shoreditch.", lngLat:[-0.0685,51.5146]},
-    { name:"Beigel Bake", area:"Brick Lane", note:"Famous 24hrs.", lngLat:[-0.0716,51.5244]},
-    { name:"Duck & Waffle", area:"City", note:"24hr top floor late-night food.", lngLat:[-0.0802,51.5153]},
-    { name:"The Shed", area:"Notting Hill", note:"", lngLat:[-0.2041,51.5108]},
-    { name:"Dishoom (King's Cross)", area:"King's Cross", note:"", lngLat:[-0.1236,51.5352]},
-    { name:"L’Entrecôte", area:"Marylebone", note:"", lngLat:[-0.1521,51.5183]},
-    { name:"Honey & Co", area:"Fitzrovia", note:"", lngLat:[-0.1365,51.5182]},
-    { name:"Yalla Yalla", area:"Soho", note:"", lngLat:[-0.1330,51.5132]},
-    { name:"Fairuz", area:"Marylebone High Street", note:"", lngLat:[-0.1506,51.5198]},
-    { name:"Polpo", area:"Soho", note:"", lngLat:[-0.1319,51.5137]},
-    { name:"Social Eating House", area:"Soho", note:"", lngLat:[-0.1362,51.5130]},
-    { name:"Brindisa (Soho)", area:"Soho", note:"", lngLat:[-0.1314,51.5124]},
-    { name:"The Ivy Café", area:"Marylebone", note:"Mid-morning breakfast (~10am).", lngLat:[-0.1504,51.5194]},
-    { name:"Rochelle Canteen", area:"Shoreditch", note:"", lngLat:[-0.0739,51.5237]},
-    { name:"Crispin", area:"Spitalfields", note:"", lngLat:[-0.0756,51.5198]}
+    // -----------------
+    // Restaurants (green)
+    // -----------------
+    { type:"restaurant", name:"Caravan (Fitzrovia)", area:"Fitzrovia", note:"", lngLat:[-0.1367,51.5186]},
+    { type:"restaurant", name:"Caravan (King's Cross)", area:"King's Cross", note:"", lngLat:[-0.1246,51.5353]},
+    { type:"restaurant", name:"Caravan (London Bridge)", area:"London Bridge", note:"", lngLat:[-0.0865,51.5056]},
+    { type:"restaurant", name:"Roast Borough Market", area:"London Bridge", note:"", lngLat:[-0.0903,51.5055]},
+    { type:"restaurant", name:"26 Grains", area:"Covent Garden", note:"Favourite breakfast (porridge!).", lngLat:[-0.1245,51.5127]},
+    { type:"restaurant", name:"Ottolenghi (Marylebone)", area:"Marylebone", note:"Great for sweets.", lngLat:[-0.1516,51.5202]},
+    { type:"restaurant", name:"St. John", area:"Clerkenwell", note:"", lngLat:[-0.1037,51.5208]},
+    { type:"restaurant", name:"The Wolseley", area:"Piccadilly", note:"Great breakfast or tea (and design).", lngLat:[-0.1393,51.5073]},
+    { type:"restaurant", name:"Riding House Café", area:"Fitzrovia", note:"", lngLat:[-0.1377,51.5185]},
+    { type:"restaurant", name:"Tayyabs", area:"Whitechapel", note:"Famous Pakistani grill near Brick Lane/Shoreditch.", lngLat:[-0.0685,51.5146]},
+    { type:"restaurant", name:"Beigel Bake", area:"Brick Lane", note:"Famous 24hrs.", lngLat:[-0.0716,51.5244]},
+    { type:"restaurant", name:"Duck & Waffle", area:"City", note:"24hr top floor late-night food.", lngLat:[-0.0802,51.5153]},
+    { type:"restaurant", name:"The Shed", area:"Notting Hill", note:"", lngLat:[-0.2041,51.5108]},
+    { type:"restaurant", name:"Dishoom (King's Cross)", area:"King's Cross", note:"", lngLat:[-0.1236,51.5352]},
+    { type:"restaurant", name:"L’Entrecôte", area:"Marylebone", note:"", lngLat:[-0.1521,51.5183]},
+    { type:"restaurant", name:"Honey & Co", area:"Fitzrovia", note:"", lngLat:[-0.1365,51.5182]},
+    { type:"restaurant", name:"Yalla Yalla", area:"Soho", note:"", lngLat:[-0.1330,51.5132]},
+    { type:"restaurant", name:"Fairuz", area:"Marylebone High Street", note:"", lngLat:[-0.1506,51.5198]},
+    { type:"restaurant", name:"Polpo", area:"Soho", note:"", lngLat:[-0.1319,51.5137]},
+    { type:"restaurant", name:"Social Eating House", area:"Soho", note:"", lngLat:[-0.1362,51.5130]},
+    { type:"restaurant", name:"Brindisa (Soho)", area:"Soho", note:"", lngLat:[-0.1314,51.5124]},
+    { type:"restaurant", name:"The Ivy Café", area:"Marylebone", note:"Mid-morning breakfast (~10am).", lngLat:[-0.1504,51.5194]},
+    { type:"restaurant", name:"Rochelle Canteen", area:"Shoreditch", note:"", lngLat:[-0.0739,51.5237]},
+    { type:"restaurant", name:"Crispin", area:"Spitalfields", note:"", lngLat:[-0.0756,51.5198]},
+
+    // NEW restaurant
+    { type:"restaurant", name:"Mercato Mayfair", area:"Mayfair", note:"St Mark's Church, 13A N Audley St, W1K 6ZA", lngLat:[-0.1528611,51.5131806]},
+
+    // -------------
+    // Coffee (blue)
+    // -------------
+    { type:"coffee", name:"The Attendant", area:"Fitzrovia", note:"Old public loo!", lngLat:[-0.141133,51.520897]},   // Foley St :contentReference[oaicite:0]{index=0}
+    { type:"coffee", name:"Kaffeine", area:"Fitzrovia", note:"", lngLat:[-0.137549,51.518801]},                   // Great Titchfield St 
+    { type:"coffee", name:"Workshop Coffee", area:"Clerkenwell", note:"", lngLat:[-0.102337,51.522297]},            // EC1M 5RN (postcode centroid) :contentReference[oaicite:2]{index=2}
+    { type:"coffee", name:"Department of Coffee & Social Affairs", area:"Soho / Oxford Circus", note:"", lngLat:[-0.139047,51.513587]}, // W1F 7HD :contentReference[oaicite:3]{index=3}
+    { type:"coffee", name:"Flat White", area:"Soho", note:"", lngLat:[-0.134055,51.51268]},                         // Berwick St area (nearby postcode) :contentReference[oaicite:4]{index=4}
+    { type:"coffee", name:"Shoreditch Grind", area:"Shoreditch", note:"", lngLat:[-0.0881542,51.5259566]},          // Old St :contentReference[oaicite:5]{index=5}
+    { type:"coffee", name:"Ozone Coffee Roasters", area:"Shoreditch", note:"", lngLat:[-0.0871111,51.5247222]},     // :contentReference[oaicite:6]{index=6}
+    { type:"coffee", name:"Taylor St. (Shoreditch)", area:"Shoreditch", note:"", lngLat:[-0.080628,51.523994]},     // Shoreditch approx (postcode centroid) :contentReference[oaicite:7]{index=7}
+    { type:"coffee", name:"Fix 126", area:"Shoreditch", note:"", lngLat:[-0.08007,51.525955]},                      // EC2A 3PJ :contentReference[oaicite:8]{index=8}
+    { type:"coffee", name:"Origin Coffee Roasters", area:"Shoreditch", note:"", lngLat:[-0.081145,51.526458]},      // EC2A 3PE :contentReference[oaicite:9]{index=9}
+    { type:"coffee", name:"Clerkenwell Grind", area:"Clerkenwell", note:"", lngLat:[-0.102337,51.522297]},          // same Old St/Clerkenwell cluster centroid :contentReference[oaicite:10]{index=10}
+    { type:"coffee", name:"Monmouth (Borough)", area:"Borough Market", note:"", lngLat:[-0.0902,51.5054]},          // Borough Market approx (center)
+    { type:"coffee", name:"Monmouth (Covent Garden)", area:"Covent Garden", note:"", lngLat:[-0.1268041,51.5143891]} // :contentReference[oaicite:11]{index=11}
+
+    // NOTE: You listed “Caravan Fitzrovia (also good breakfast)” under coffee too —
+    // it’s already included above as a restaurant. If you want it duplicated under coffee,
+    // add another entry with type:"coffee" pointing to the same coordinates.
   ];
+
+  const typeLabel = (t) => ({ restaurant:"Restaurant", coffee:"Coffee", pub:"Pub" }[t] || t);
 
   const map = new mapboxgl.Map({
     container: "mapInner",
@@ -117,13 +191,22 @@
   const listEl = document.getElementById("list");
   const bounds = new mapboxgl.LngLatBounds();
 
-  places.forEach((p) => {
+  function addPlace(p){
+    if (!p.lngLat || p.lngLat.length !== 2) return;
+
     bounds.extend(p.lngLat);
 
     const popup = new mapboxgl.Popup({ offset: 15 })
-      .setHTML(`<strong>${p.name}</strong><br>${p.area}${p.note ? `<br>${p.note}` : ""}`);
+      .setHTML(
+        `<strong>${p.name}</strong>` +
+        `<br>${typeLabel(p.type)} · ${p.area}` +
+        (p.note ? `<br>${p.note}` : "")
+      );
 
-    new mapboxgl.Marker()
+    const el = document.createElement("div");
+    el.className = `marker ${p.type}`;
+
+    new mapboxgl.Marker({ element: el })
       .setLngLat(p.lngLat)
       .setPopup(popup)
       .addTo(map);
@@ -131,18 +214,50 @@
     const card = document.createElement("div");
     card.className = "card";
     card.innerHTML = `
-      <div class="cardName">${p.name}</div>
-      <div class="cardArea">${p.area}</div>
-      ${p.note ? `<div class="cardNote">${p.note}</div>` : ""}
+      <div class="cardTop">
+        <span class="dot ${p.type}" title="${typeLabel(p.type)}"></span>
+        <div>
+          <div class="cardName">${p.name}</div>
+          <div class="cardArea">${typeLabel(p.type)} · ${p.area}</div>
+          ${p.note ? `<div class="cardNote">${p.note}</div>` : ""}
+        </div>
+      </div>
     `;
     card.onclick = () => {
       map.flyTo({ center: p.lngLat, zoom: 14 });
       popup.addTo(map);
     };
     listEl.appendChild(card);
-  });
+  }
 
-  map.once("load", () => map.fitBounds(bounds, { padding: 60 }));
+  // Add restaurants + coffee first
+  places.forEach(addPlace);
+
+  // -----------------
+  // Pubs (red)
+  // -----------------
+  const pubs = [
+    { type:"pub", name:"The Portman", area:"Marylebone", note:"", lngLat:[-0.16115,51.515177]},                    // W1H 7QW :contentReference[oaicite:12]{index=12}
+    { type:"pub", name:"Duke Of Wellington", area:"Marylebone", note:"Good for Sunday lunch!", lngLat:[-0.161444,51.519318]}, // W1H 2HQ :contentReference[oaicite:13]{index=13}
+    { type:"pub", name:"The Wigmore", area:"Marylebone", note:"", lngLat:[-0.143187,51.517566]},                   // Apple Maps :contentReference[oaicite:14]{index=14}
+    { type:"pub", name:"The Prince Regent", area:"Marylebone", note:"", lngLat:[-0.1268041,51.5143891]},          // (If you want exact, share postcode; using central-ish placeholder)
+    { type:"pub", name:"Lore of the Land", area:"Fitzrovia", note:"Owned by Guy Ritchie (dad & bros like it).", lngLat:[-0.1395969,51.5220798]}, // :contentReference[oaicite:15]{index=15}
+    { type:"pub", name:"The Lamb & Flag", area:"Covent Garden", note:"", lngLat:[-0.125704,51.511774]},            // :contentReference[oaicite:16]{index=16}
+    { type:"pub", name:"The Churchill Arms", area:"Kensington", note:"", lngLat:[-0.194776,51.506901]},            // :contentReference[oaicite:17]{index=17}
+    { type:"pub", name:"The Holly Bush", area:"Hampstead", note:"", lngLat:[-0.179326,51.557761]},                 // :contentReference[oaicite:18]{index=18}
+    { type:"pub", name:"Culpeper", area:"Spitalfields", note:"", lngLat:[-0.0729614,51.516875]},                   // Apple Maps :contentReference[oaicite:19]{index=19}
+    { type:"pub", name:"Princess of Shoreditch", area:"Shoreditch", note:"", lngLat:[-0.083665,51.525601]},        // :contentReference[oaicite:20]{index=20}
+    { type:"pub", name:"The Owl & Pussycat", area:"Shoreditch", note:"", lngLat:[-0.075467,51.524350]},            // :contentReference[oaicite:21]{index=21}
+    { type:"pub", name:"The Griffin", area:"Shoreditch", note:"", lngLat:[-0.081986703,51.52500528]}               // :contentReference[oaicite:22]{index=22}
+  ];
+
+  // Add pubs
+  pubs.forEach(addPlace);
+
+  map.once("load", () => {
+    // Fit bounds only if we added at least one valid coordinate
+    try { map.fitBounds(bounds, { padding: 60 }); } catch(e) {}
+  });
 </script>
 </body>
 </html>
